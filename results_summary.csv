@@ -1,0 +1,5 @@
+"--- Average Audio Features (0 = unannotated, 1 = annotated) ---"
+Annotated?,Avg Tempo,Avg Energy,Avg Loudness
+
+--- Popularity vs. Annotation Count ---
+Popularity,Annotation Count
