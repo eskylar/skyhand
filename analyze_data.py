@@ -1,21 +1,26 @@
 import sqlite3
 import csv
 
-DB_NAME = '/Users/skylaremerson/Desktop/SI206/Final Project/music_data.sqlite'
+DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
 
-
-# ---------------------------------------------
-# Connect to the database
-# ---------------------------------------------
 def connect_db():
+    """
+    Connect to the SQLite database and return the connection and cursor.
+    
+    Returns:
+        tuple: (connection, cursor)
+    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     return conn, cur
 
-# ---------------------------------------------
-# 1. Calculate average audio features (annotated vs. unannotated)
-# ---------------------------------------------
 def avg_audio_features_by_annotation():
+    """
+    Calculate the average tempo, energy, and loudness for annotated versus unannotated songs.
+    
+    Returns:
+        list: Query results as a list of tuples.
+    """
     conn, cur = connect_db()
     query = '''
         SELECT L.has_annotations, 
@@ -32,10 +37,13 @@ def avg_audio_features_by_annotation():
     conn.close()
     return results
 
-# ---------------------------------------------
-# 2. Correlation-ish data: popularity vs. annotation count
-# ---------------------------------------------
 def get_popularity_and_annotations():
+    """
+    Retrieve Spotify popularity and Genius annotation count for songs with annotations.
+    
+    Returns:
+        list: Query results as a list of tuples.
+    """
     conn, cur = connect_db()
     query = '''
         SELECT T.popularity, L.annotation_count
@@ -48,10 +56,14 @@ def get_popularity_and_annotations():
     conn.close()
     return results
 
-# ---------------------------------------------
-# 3. Save results to CSV
-# ---------------------------------------------
 def write_summary_to_file(avg_features, pop_annots):
+    """
+    Write the analysis results to a CSV file.
+    
+    Args:
+        avg_features (list): Averaged audio features data.
+        pop_annots (list): Popularity and annotation count data.
+    """
     with open('results_summary.csv', 'w', newline='') as f:
         writer = csv.writer(f)
 
@@ -68,10 +80,10 @@ def write_summary_to_file(avg_features, pop_annots):
 
     print("Saved analysis results to results_summary.csv")
 
-# ---------------------------------------------
-# Run all calculations
-# ---------------------------------------------
 def run_analysis():
+    """
+    Run all calculations and write the results to a file.
+    """
     avg_features = avg_audio_features_by_annotation()
     pop_annots = get_popularity_and_annotations()
     write_summary_to_file(avg_features, pop_annots)

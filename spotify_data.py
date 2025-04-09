@@ -1,13 +1,11 @@
 import requests
 import sqlite3
 import time
-import json
-import random
 
 # ---------------------------------------------
 # Spotify API Setup (Use your own access token)
 # ---------------------------------------------
-ACCESS_TOKEN = 'BQDP2huTaK6SJ02IgPbZOmy8EWlMtU2zx4fYpAbyPwQRAeBnutQmoOQn6iExb_CdeIANqJi0z_mAk0fk3wkszzPQ0cmFym2zRm9cvpROlfi50prbZUk_Ps0CykYS7tF0nP7Pg2MzmXE'
+ACCESS_TOKEN = 'BQBqs6Os7mGPkoOWzWqoEgDnMX1KO575pPMMcrlwRuvzi4ayI69w7sH0eCktNGDREKUySUVtjjiD72OlMfBR6HvOoLCtDRLMgQHPEOrhmmkFoFH5rp7L6WgmC-KUvVP8haHYp1V-vlQ'
 HEADERS = {
     'Authorization': f'Bearer {ACCESS_TOKEN}'
 }
@@ -19,17 +17,19 @@ ARTISTS = [
     'Lorde', 'Macklemore', 'Journey', 'AC/DC', 'Steve Lacy', 'Brent Faiyaz'
 ]
 
-DB_NAME = '/Users/skylaremerson/Desktop/SI206/Final Project/music_data.sqlite'
-LIMIT_PER_RUN = 50
+# UPDATED DB path here:
+DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
+LIMIT_PER_RUN = 25  # Reduced limit per run
 
-# ---------------------------------------------
-# Database setup
-# ---------------------------------------------
 def setup_database():
+    """
+    Set up the SQLite database tables for Tracks and AudioFeatures,
+    including the genres column in Tracks.
+    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    # Create Tracks table
+    # Create Tracks table with genres column
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Tracks (
             track_id TEXT PRIMARY KEY,
@@ -37,7 +37,8 @@ def setup_database():
             artist TEXT,
             album TEXT,
             popularity INTEGER,
-            release_date TEXT
+            release_date TEXT,
+            genres TEXT
         )
     ''')
 
@@ -56,10 +57,19 @@ def setup_database():
     conn.commit()
     conn.close()
 
-# ---------------------------------------------
-# Search tracks by artist name
-# ---------------------------------------------
+
 def search_tracks_by_artist(artist_name, limit=15, offset=0):
+    """
+    Search for tracks by a given artist using the Spotify API.
+    
+    Args:
+        artist_name (str): The artist name.
+        limit (int): Number of tracks to return.
+        offset (int): Offset value for pagination.
+    
+    Returns:
+        list: A list of track items.
+    """
     params = {
         'q': artist_name,
         'type': 'track',
@@ -69,49 +79,69 @@ def search_tracks_by_artist(artist_name, limit=15, offset=0):
     response = requests.get(BASE_URL + '/search', headers=HEADERS, params=params)
     if response.status_code != 200:
         print(f"Error fetching tracks for {artist_name}: {response.status_code}")
+        print(f"Error message: {response.text}")
         return []
     data = response.json()
     return data['tracks']['items']
 
-# ---------------------------------------------
-# Get audio features for a track
-# ---------------------------------------------
 def get_audio_features(track_id):
+    """
+    Retrieve audio features for a track.
+    
+    Args:
+        track_id (str): The Spotify track ID.
+    
+    Returns:
+        dict or None: A dictionary of audio features or None if not found.
+    """
     url = f"{BASE_URL}/audio-features/{track_id}"
     response = requests.get(url, headers=HEADERS)
     if response.status_code != 200:
-        return None  # Don't print 403s
+        return None
     return response.json()
 
-# ---------------------------------------------
-# Store track and audio features into the database
-# ---------------------------------------------
+def get_artist_genres(artist_id):
+    url = f"{BASE_URL}/artists/{artist_id}"
+    response = requests.get(url, headers=HEADERS)
+    if response.status_code != 200:
+        print(f"Error fetching artist genres for {artist_id}: {response.status_code}")
+        return []
+    data = response.json()
+    return data.get('genres', [])
+
+
 def store_track_and_features(track, conn, cur):
-    if not track['preview_url']:
-        return  # Skip tracks that aren't playable (to avoid 403 errors)
-
+    """
+    Store track metadata and its audio features into the database.
+    
+    Args:
+        track (dict): The track data from Spotify.
+        conn (Connection): The SQLite connection object.
+        cur (Cursor): The SQLite cursor object.
+    """
     try:
-        # Debugging: Print the track data being inserted
-        print(f"Inserting track: {track['name']} by {track['artists'][0]['name']}")
+        artist_info = track['artists'][0]
+        artist_id = artist_info['id']
+        genres_list = get_artist_genres(artist_id)
+        genres_str = ", ".join(genres_list) if genres_list else "Unknown"
 
-        # Insert into Tracks
+        # Print a concise message indicating the song added
+        print(f"Added: {track['name']} by {artist_info['name']}")
+
         cur.execute('''
-            INSERT OR REPLACE INTO Tracks (track_id, name, artist, album, popularity, release_date)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO Tracks (track_id, name, artist, album, popularity, release_date, genres)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             track['id'],
             track['name'],
-            track['artists'][0]['name'],
+            artist_info['name'],
             track['album']['name'],
             track['popularity'],
-            track['album']['release_date']
+            track['album']['release_date'],
+            genres_str
         ))
-
-        # Debugging: Check if insertion of track was successful
         conn.commit()
-        print(f"Track {track['name']} inserted successfully into Tracks table.")
 
-        # Get audio features and insert
         features = get_audio_features(track['id'])
         if features:
             cur.execute('''
@@ -124,24 +154,17 @@ def store_track_and_features(track, conn, cur):
                 features['key'],
                 features['loudness']
             ))
-
-            # Debugging: Commit after audio feature insertion
             conn.commit()
-            print(f"Audio features for {track['name']} inserted successfully into AudioFeatures table.")
-
-        # Check the number of tracks in the database after commit
-        cur.execute("SELECT COUNT(*) FROM Tracks")
-        print(f"Tracks in database after insertion: {cur.fetchone()[0]}")
 
     except Exception as e:
-        print(f"Error storing data for {track['name']} by {track['artists'][0]['name']}: {e}")
+        print(f"Error storing data for {track['name']} by {artist_info['name']}: {e}")
 
 
 
-# ---------------------------------------------
-# Run the data collection (limit to 50 tracks per run)
-# ---------------------------------------------
 def run_spotify_collection():
+    """
+    Run the Spotify data collection process, adding up to 25 new tracks per run.
+    """
     setup_database()
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -154,12 +177,13 @@ def run_spotify_collection():
     for artist in ARTISTS:
         if to_add <= 0:
             break
-        offset = random.randint(0, 40)
+        offset = 0
         tracks = search_tracks_by_artist(artist, limit=15, offset=offset)
+
         for track in tracks:
             cur.execute("SELECT 1 FROM Tracks WHERE track_id = ?", (track['id'],))
             if cur.fetchone() is None:
-                store_track_and_features(track, conn, cur)  # Pass both conn and cur here
+                store_track_and_features(track, conn, cur)
                 to_add -= 1
                 if to_add <= 0:
                     break
@@ -167,17 +191,13 @@ def run_spotify_collection():
 
     conn.close()
 
-    # Open a new connection to count total tracks after adding
     conn_check = sqlite3.connect(DB_NAME)
     cur_check = conn_check.cursor()
     cur_check.execute("SELECT COUNT(*) FROM Tracks")
     total_now = cur_check.fetchone()[0]
     conn_check.close()
 
-    print(f"Done. {(LIMIT_PER_RUN - to_add)} new tracks added (if available). Total now: {total_now}")
+    print(f"Done. {LIMIT_PER_RUN - to_add} new tracks added (if available). Total now: {total_now}")
 
-# ---------------------------------------------
-# Run script
-# ---------------------------------------------
 if __name__ == '__main__':
     run_spotify_collection()
