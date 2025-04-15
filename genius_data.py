@@ -1,15 +1,12 @@
 import requests
 import sqlite3
 import time
+import random
 from db_setup import setup_database
 
-# ---------------------------------------------
-# Genius API Setup (Use your own access token)
-# ---------------------------------------------
-ACCESS_TOKEN = 'jnucUJZcF2kUdD3871ul6Rgtpzd6H0CGbfhnULICOeHxJ4Nn1FCwq-9vhp3OCCqT'
-HEADERS = {
-    'Authorization': f'Bearer {ACCESS_TOKEN}'
-}
+# Genius API Setup
+ACCESS_TOKEN = '0Oc4fI4JUTbqzL-wDhf7i4OWKBWB82pa7QQAXqmu2q7jSxImIo3DS5Giyc-u7pkN'
+HEADERS = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
 BASE_URL = 'https://api.genius.com'
 
 ARTISTS = [
@@ -22,23 +19,11 @@ DB_NAME = '/Users/hannahtoppel/Desktop/si 206/skyhand/music_data.sqlite'
 LIMIT_PER_RUN = 25
 
 def setup_database_genius():
-    """
-    Ensure that the database and tables are set up before collecting Genius data.
-    """
+    """Ensure the database and tables are created."""
     setup_database()
 
 def search_genius_songs(artist, per_page=5, page=1):
-    """
-    Search Genius API for songs by a given artist with pagination.
-    
-    Args:
-        artist (str): The artist name.
-        per_page (int): Maximum number of results per page.
-        page (int): Page number for the API.
-    
-    Returns:
-        list: A list of hit items from the API.
-    """
+    """Search the Genius API for songs by a given artist with pagination."""
     url = f'{BASE_URL}/search'
     params = {'q': artist, 'per_page': per_page, 'page': page}
     response = requests.get(url, headers=HEADERS, params=params)
@@ -47,18 +32,8 @@ def search_genius_songs(artist, per_page=5, page=1):
         return []
     return response.json()['response']['hits'][:per_page]
 
-
-
 def extract_song_data(hit):
-    """
-    Extract song data from a Genius API hit.
-    
-    Args:
-        hit (dict): A single hit result from the API.
-    
-    Returns:
-        dict: A dictionary containing song metadata.
-    """
+    """Extract song data from a single Genius API hit and return a dictionary."""
     song = hit['result']
     song_data = {
         'song_id': song['id'],
@@ -73,15 +48,9 @@ def extract_song_data(hit):
     return song_data
 
 def store_lyrics_metadata(song_data):
-    """
-    Store the extracted song metadata into the Lyrics table.
-    
-    Args:
-        song_data (dict): The song metadata dictionary.
-    """
+    """Insert the song data into the Lyrics table."""
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
-
     cur.execute('''
         INSERT OR IGNORE INTO Lyrics (song_id, title, artist, album, release_date, annotation_count, has_annotations, lyrics)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -95,65 +64,74 @@ def store_lyrics_metadata(song_data):
         song_data['has_annotations'],
         song_data['lyrics']
     ))
-
     print(f"Inserted lyrics for {song_data['title']} by {song_data['artist']}")
     conn.commit()
     conn.close()
 
 def run_genius_collection():
     """
-    Run the Genius data collection process, adding up to LIMIT_PER_RUN (25) new songs per run.
-    The script checks the current total and adds songs incrementally until a desired total of 125 is reached.
+    Run the Genius data collection process, adding up to LIMIT_PER_RUN new songs.
+    This version cycles through the list of artists one by one using a simple index.
     """
-    setup_database_genius()  # Ensure the database/tables exist
+    setup_database_genius()  # Ensure that the database/tables exist
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     
     # Get current total number of songs in the Lyrics table
     cur.execute("SELECT COUNT(*) FROM Lyrics")
     current_total = cur.fetchone()[0]
-    
-    desired_total = 125  # overall target number of songs
+    desired_total = 125  # overall target
     if current_total >= desired_total:
         print(f"Database already has {current_total} songs. No need to add more.")
         conn.close()
         return
     
-    to_add = LIMIT_PER_RUN  # maximum new songs to add this run (e.g., 25)
+    to_add = LIMIT_PER_RUN  # new songs to add this run
     new_songs = 0
 
-    # Loop over each artist and try to fetch new songs using pagination if necessary
-    for artist in ARTISTS:
-        if to_add <= 0:
-            break
-        page = 1
-        while to_add > 0:
-            hits = search_genius_songs(artist, per_page=5, page=page)
-            if not hits:  # no more hits for this artist on this page
-                break
+    # Create a dictionary for pagination for each artist
+    pages = {artist: 1 for artist in ARTISTS}
+    
+    # Shuffle the artist list to randomize the order
+    artists_shuffled = ARTISTS[:]  # copy of the list
+    random.shuffle(artists_shuffled)
+    
+    # Use a simple index to cycle through artists
+    index = 0
+    num_artists = len(artists_shuffled)
+    
+    while to_add > 0:
+        current_artist = artists_shuffled[index]
+        page = pages[current_artist]
+        hits = search_genius_songs(current_artist, per_page=5, page=page)
+        if not hits:
+            # If no hits on this page, increment the page counter for this artist and move on
+            pages[current_artist] += 1
+        else:
             for hit in hits:
                 if to_add <= 0:
                     break
                 song_data = extract_song_data(hit)
-                # Check if song already exists
+                # Check if the song already exists in the Lyrics table
                 cur.execute("SELECT 1 FROM Lyrics WHERE song_id = ?", (song_data['song_id'],))
                 if cur.fetchone() is None:
                     store_lyrics_metadata(song_data)
                     new_songs += 1
                     to_add -= 1
                     current_total += 1
-                    # If we reach our desired total, stop immediately.
                     if current_total >= desired_total:
                         print(f"Desired total reached: {current_total} songs in database.")
                         conn.close()
                         return
                 time.sleep(0.5)
-            page += 1
+            # Increment the page counter for this artist for the next cycle
+            pages[current_artist] += 1
+        
+        # Increment the index. If we've reached the end of the shuffled artist list, start over.
+        index = (index + 1) % num_artists
 
     conn.close()
     print(f"Done. Added {new_songs} Genius songs. Total songs is now {current_total}.")
-
-
 
 if __name__ == '__main__':
     run_genius_collection()

@@ -2,105 +2,99 @@ import sqlite3
 import matplotlib.pyplot as plt
 from collections import Counter
 
-#sqlite3 /Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite
-
 # Updated database path
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
 
-def bar_chart_avg_audio():
+def bar_chart_popularity():
     """
-    Create a bar chart comparing average audio features (tempo, energy, loudness)
-    between annotated and unannotated songs using join on artist.
+    Create a bar chart comparing average track popularity between annotated
+    and unannotated songs using data from the Tracks table.
+    Uses a join that replaces 'é' with 'e' for improved matching.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    # Join on artist only (case-insensitive) so that at least some data can be aggregated.
+    # Use REPLACE to fix accented characters in the join condition
     query = '''
-        SELECT L.has_annotations, AVG(A.tempo), AVG(A.energy), AVG(A.loudness)
+        SELECT L.has_annotations, AVG(T.popularity)
         FROM Lyrics L
-        JOIN Tracks T ON LOWER(L.artist) = LOWER(T.artist)
-        JOIN AudioFeatures A ON T.track_id = A.track_id
+        JOIN Tracks T ON REPLACE(LOWER(L.artist), 'é', 'e') = REPLACE(LOWER(T.artist), 'é', 'e')
         GROUP BY L.has_annotations
     '''
     cur.execute(query)
     data = cur.fetchall()
-    print("Data for bar chart:", data)
+    print("Data for popularity bar chart:", data)
     conn.close()
 
-    tempo_dict = {0: 0, 1: 0}
-    energy_dict = {0: 0, 1: 0}
-    loudness_dict = {0: 0, 1: 0}
-
+    pop_dict = {0: 0, 1: 0}
     for row in data:
-        has_ann, avg_tempo, avg_energy, avg_loudness = row
-        tempo_dict[has_ann] = avg_tempo
-        energy_dict[has_ann] = avg_energy
-        loudness_dict[has_ann] = avg_loudness
+        has_ann, avg_pop = row
+        pop_dict[has_ann] = avg_pop
 
     labels = ['Unannotated', 'Annotated']
-    tempos = [tempo_dict.get(0, 0), tempo_dict.get(1, 0)]
-    energies = [energy_dict.get(0, 0), energy_dict.get(1, 0)]
-    loudness = [loudness_dict.get(0, 0), loudness_dict.get(1, 0)]
+    pops = [pop_dict.get(0, 0), pop_dict.get(1, 0)]
     x = range(len(labels))
 
     plt.figure()
-    plt.bar(x, tempos, width=0.2, label='Tempo', align='center')
-    plt.bar([i + 0.2 for i in x], energies, width=0.2, label='Energy', align='center')
-    plt.bar([i + 0.4 for i in x], loudness, width=0.2, label='Loudness', align='center')
-    plt.xticks([i + 0.2 for i in x], labels)
-    plt.title('Avg Audio Features: Annotated vs. Unannotated Songs (by artist)')
+    plt.bar(x, pops, width=0.4, color='skyblue')
+    plt.xticks(x, labels)
     plt.xlabel('Annotation Status')
-    plt.ylabel('Value')
-    plt.legend()
+    plt.ylabel('Average Popularity')
+    plt.title('Average Popularity: Annotated vs. Unannotated Songs')
     plt.tight_layout()
-    plt.savefig('bar_chart_audio_features.png')
-    print("Saved bar_chart_audio_features.png")
+    plt.savefig('bar_chart_popularity.png')
+    print("Saved bar_chart_popularity.png")
 
-def scatter_popularity_vs_annotations():
+def scatter_duration_vs_annotations():
     """
-    Create a scatter plot showing the relationship between Spotify popularity
-    and Genius annotation count using join on artist.
+    Create a scatter plot showing the relationship between track duration and
+    annotation count. Duration is converted from milliseconds to minutes.
+    Uses a join that replaces 'é' with 'e' for improved matching.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
     query = '''
-        SELECT T.popularity, L.annotation_count
-        FROM Lyrics L
-        JOIN Tracks T ON LOWER(L.artist) = LOWER(T.artist)
-        WHERE L.annotation_count > 0
+         SELECT T.duration_ms, L.annotation_count
+         FROM Lyrics L
+         JOIN Tracks T ON REPLACE(LOWER(L.artist), 'é', 'e') = REPLACE(LOWER(T.artist), 'é', 'e')
+         WHERE L.annotation_count > 0
     '''
     cur.execute(query)
     data = cur.fetchall()
-    print("Data for scatter plot:", data)
+    print("Data for duration scatter plot:", data)
     conn.close()
 
-    popularity = [row[0] for row in data]
+    if not data:
+        print("No data for duration scatter plot.")
+        return
+
+    # Convert duration from ms to minutes
+    durations = [row[0] / 60000 for row in data]
     annotations = [row[1] for row in data]
 
     plt.figure()
-    plt.scatter(popularity, annotations, alpha=0.7)
-    plt.title('Spotify Popularity vs. Genius Annotation Count (by artist)')
-    plt.xlabel('Popularity (0–100)')
+    plt.scatter(durations, annotations, alpha=0.7)
+    plt.xlabel('Track Duration (minutes)')
     plt.ylabel('Annotation Count')
+    plt.title('Track Duration vs. Annotation Count')
     plt.tight_layout()
-    plt.savefig('scatter_popularity_annotations.png')
-    print("Saved scatter_popularity_annotations.png")
+    plt.savefig('scatter_duration_vs_annotations.png')
+    print("Saved scatter_duration_vs_annotations.png")
 
 def pie_chart_annotated_genres():
     """
-    Create a pie chart showing the distribution of genres among annotated songs
-    using join on artist.
+    Create a pie chart showing the distribution of genres among annotated songs.
+    Uses a join that replaces 'é' with 'e' for improved matching.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
     query = '''
-        SELECT T.genres
-        FROM Lyrics L
-        JOIN Tracks T ON LOWER(L.artist) = LOWER(T.artist)
-        WHERE L.has_annotations = 1 AND T.genres IS NOT NULL
+         SELECT T.genres
+         FROM Lyrics L
+         JOIN Tracks T ON REPLACE(LOWER(L.artist), 'é', 'e') = REPLACE(LOWER(T.artist), 'é', 'e')
+         WHERE L.has_annotations = 1 AND T.genres IS NOT NULL
     '''
     cur.execute(query)
     rows = cur.fetchall()
@@ -136,10 +130,13 @@ def pie_chart_annotated_genres():
 
 def run_all_viz():
     """
-    Run all visualization functions sequentially to produce the bar, scatter, and pie charts.
+    Run all visualization functions sequentially to produce:
+      - A bar chart for average popularity,
+      - A scatter plot for track duration vs. annotation count, and
+      - A pie chart for annotated song genres.
     """
-    bar_chart_avg_audio()
-    scatter_popularity_vs_annotations()
+    bar_chart_popularity()
+    scatter_duration_vs_annotations()
     pie_chart_annotated_genres()
 
 if __name__ == '__main__':

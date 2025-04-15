@@ -116,11 +116,6 @@ def get_artist_genres(artist_id):
 def store_track_and_features(track, conn, cur):
     """
     Store track metadata and its audio features into the database.
-    
-    Args:
-        track (dict): The track data from Spotify.
-        conn (Connection): The SQLite connection object.
-        cur (Cursor): The SQLite cursor object.
     """
     try:
         artist_info = track['artists'][0]
@@ -131,9 +126,12 @@ def store_track_and_features(track, conn, cur):
         # Print a concise message indicating the song added
         print(f"Added: {track['name']} by {artist_info['name']}")
 
+        # Updated insert query including track duration (duration_ms)
         cur.execute('''
-            INSERT OR REPLACE INTO Tracks (track_id, name, artist, album, popularity, release_date, genres)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO Tracks (
+                track_id, name, artist, album, popularity, release_date, genres, duration_ms
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             track['id'],
             track['name'],
@@ -141,7 +139,8 @@ def store_track_and_features(track, conn, cur):
             track['album']['name'],
             track['popularity'],
             track['album']['release_date'],
-            genres_str
+            genres_str,
+            track['duration_ms']  # Duration from the API response (in milliseconds)
         ))
         conn.commit()
 
@@ -161,6 +160,7 @@ def store_track_and_features(track, conn, cur):
 
     except Exception as e:
         print(f"Error storing data for {track['name']} by {artist_info['name']}: {e}")
+
 
 
 

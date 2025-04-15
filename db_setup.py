@@ -4,16 +4,10 @@ import sqlite3
 DB_NAME = os.path.join(os.path.dirname(__file__), 'music_data.sqlite')
 
 def setup_database():
-    """
-    Set up the SQLite database with the necessary tables:
-      - Lyrics: stores Genius metadata including lyrics.
-      - Tracks: stores Spotify track data including a genres column.
-      - AudioFeatures: stores audio features for each track.
-    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    # Create Lyrics table
+    # Lyrics table (Genius API)
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Lyrics (
             song_id INTEGER PRIMARY KEY,
@@ -28,6 +22,7 @@ def setup_database():
     ''')
 
     # Create Tracks table
+    # Tracks table (Spotify API) with additional duration_ms column
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Tracks (
             track_id TEXT PRIMARY KEY,
@@ -36,11 +31,13 @@ def setup_database():
             album TEXT,
             popularity INTEGER,
             release_date TEXT,
-            genres TEXT
+            genres TEXT,
+            duration_ms INTEGER
         )
     ''')
 
     # Create AudioFeatures table
+    # AudioFeatures table (Spotify API)
     cur.execute('''
         CREATE TABLE IF NOT EXISTS AudioFeatures (
             track_id TEXT PRIMARY KEY,
