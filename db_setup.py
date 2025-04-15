@@ -1,6 +1,7 @@
+import os
 import sqlite3
 
-DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
+DB_NAME = os.path.join(os.path.dirname(__file__), 'music_data.sqlite')
 
 def setup_database():
     """
@@ -12,7 +13,7 @@ def setup_database():
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    # Create Lyrics table (Genius API) with a lyrics column
+    # Create Lyrics table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Lyrics (
             song_id INTEGER PRIMARY KEY,
@@ -26,7 +27,7 @@ def setup_database():
         )
     ''')
 
-    # Create Tracks table (Spotify API) with a genres column
+    # Create Tracks table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Tracks (
             track_id TEXT PRIMARY KEY,
@@ -39,7 +40,7 @@ def setup_database():
         )
     ''')
 
-    # Create AudioFeatures table (Spotify API)
+    # Create AudioFeatures table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS AudioFeatures (
             track_id TEXT PRIMARY KEY,

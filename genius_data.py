@@ -18,7 +18,7 @@ ARTISTS = [
     'Lorde', 'Macklemore', 'Journey', 'AC/DC', 'Steve Lacy', 'Brent Faiyaz'
 ]
 
-DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
+DB_NAME = '/Users/hannahtoppel/Desktop/si 206/skyhand/music_data.sqlite'
 LIMIT_PER_RUN = 25
 
 def setup_database_genius():
