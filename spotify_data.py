@@ -1,3 +1,6 @@
+
+
+
 import requests
 import sqlite3
 import time
@@ -5,7 +8,7 @@ import time
 # ---------------------------------------------
 # Spotify API Setup (Use your own access token)
 # ---------------------------------------------
-ACCESS_TOKEN = 'BQBqs6Os7mGPkoOWzWqoEgDnMX1KO575pPMMcrlwRuvzi4ayI69w7sH0eCktNGDREKUySUVtjjiD72OlMfBR6HvOoLCtDRLMgQHPEOrhmmkFoFH5rp7L6WgmC-KUvVP8haHYp1V-vlQ'
+ACCESS_TOKEN = 'BQCT0tMtx1BLtm6VxxZ6i_cMKhIjU98s6lulA-FG3IxgHHzK88JkmXeee1oZGm7yjt_7k2AkSkWE8s76hsBOiyxPt23WZfbW-Ja1TXELoq-x0Nqz_OuB7bJkr0yXnz4s86Fq5ZDRRrY'
 HEADERS = {
     'Authorization': f'Bearer {ACCESS_TOKEN}'
 }
@@ -201,6 +204,4 @@ def run_spotify_collection():
 
 if __name__ == '__main__':
     run_spotify_collection()
-
-
 

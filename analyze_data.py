@@ -28,7 +28,7 @@ def avg_audio_features_by_annotation():
                AVG(A.energy), 
                AVG(A.loudness)
         FROM Lyrics L
-        JOIN Tracks T ON L.title = T.name AND L.artist = T.artist
+        JOIN Tracks T ON LOWER(L.title) = LOWER(T.name) AND LOWER(L.artist) = LOWER(T.artist)
         JOIN AudioFeatures A ON T.track_id = A.track_id
         GROUP BY L.has_annotations
     '''
@@ -48,7 +48,7 @@ def get_popularity_and_annotations():
     query = '''
         SELECT T.popularity, L.annotation_count
         FROM Lyrics L
-        JOIN Tracks T ON L.title = T.name AND L.artist = T.artist
+        JOIN Tracks T ON LOWER(L.title) = LOWER(T.name) AND LOWER(L.artist) = LOWER(T.artist)
         WHERE L.annotation_count > 0
     '''
     cur.execute(query)
