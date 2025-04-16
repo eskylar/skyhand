@@ -1,30 +1,24 @@
-
-
-
 import requests
 import sqlite3
 import time
+import random
+from db_setup import setup_database
 
-# ---------------------------------------------
-# Spotify API Setup (Use your own access token)
-# ---------------------------------------------
-ACCESS_TOKEN = 'BQBW2vkq8Z6jMeghvEUSZLuNojCda5_hys4t_0Uy5fI-j0Vx4pJKVbYQaoeFIRFNWDRQmYLbxdeOWbPKIZ7oQVz54MS7q1XPgwuQyu1mn0R9l19p1KW8M5zvq6I6gCe1xG8u6cCV6l4'
-HEADERS = {
-    'Authorization': f'Bearer {ACCESS_TOKEN}'
-}
+# Spotify API Setup with your current access token
+ACCESS_TOKEN = 'BQAsbhO36oDbrNYXfEDc1Ey5Zzv34raJx-Hh-Ewq_TTLuHpga4NprOcjtWNSmyHZVP2q4thIqynH_1S3ptdsHlwbJAuiwsdytqH5pxiWUzeNJNqA2qVKHTh48MFUCrXIvz5D0hkuxLQ'
+HEADERS = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
 BASE_URL = 'https://api.spotify.com/v1'
 
 ARTISTS = [
-    'Beyonce', 'Caamp', 'Drake', 'Ariana Grande', 'The Weeknd',
-    'Rihanna', 'Selena Gomez', 'Queen', 'The Neighbourhood',
-    'Lorde', 'Macklemore', 'Journey', 'AC/DC', 'Steve Lacy', 'Brent Faiyaz'
+   'Beyonce', 'Caamp', 'Drake', 'Ariana Grande', 'The Weeknd',
+   'Rihanna', 'Selena Gomez', 'Queen', 'The Neighbourhood',
+   'Lorde', 'Macklemore', 'Journey', 'AC/DC', 'Steve Lacy', 'Brent Faiyaz'
 ]
 
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
-LIMIT_PER_RUN = 25  # Limit new tracks per run
+LIMIT_PER_RUN = 25  # New tracks to add per run
 
 def setup_database_spotify():
-    """Ensure the Tracks and AudioFeatures tables exist."""
     setup_database()
 
 def search_tracks_by_artist(artist_name, limit=15, offset=0):
@@ -41,24 +35,6 @@ def search_tracks_by_artist(artist_name, limit=15, offset=0):
     data = response.json()
     return data['tracks']['items']
 
-def get_audio_features(track_id):
-   """
-   Retrieve audio features for a track.
-  
-   Args:
-       track_id (str): The Spotify track ID.
-  
-   Returns:
-       dict or None: A dictionary of audio features or None if not found.
-   """
-   url = f"{BASE_URL}/audio-features/{track_id}"
-   response = requests.get(url, headers=HEADERS)
-   if response.status_code != 200:
-       return None
-   return response.json()
-
-
-
 def get_artist_genres(artist_id):
     url = f"{BASE_URL}/artists/{artist_id}"
     response = requests.get(url, headers=HEADERS)
@@ -68,14 +44,12 @@ def get_artist_genres(artist_id):
     data = response.json()
     return data.get('genres', [])
 
-def store_track_and_features(track, conn, cur):
+def store_track(track, conn, cur):
     try:
         artist_info = track['artists'][0]
         artist_id = artist_info['id']
         genres_list = get_artist_genres(artist_id)
         genres_str = ", ".join(genres_list) if genres_list else "Unknown"
-
-        # Insert track including duration_ms
         print(f"Added: {track['name']} by {artist_info['name']}")
         cur.execute('''
             INSERT OR REPLACE INTO Tracks (
@@ -93,21 +67,6 @@ def store_track_and_features(track, conn, cur):
             track['duration_ms']
         ))
         conn.commit()
-
-        features = get_audio_features(track['id'])
-        if features:
-            cur.execute('''
-                INSERT OR REPLACE INTO AudioFeatures (track_id, tempo, energy, key, loudness)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (
-                features['id'],
-                features['tempo'],
-                features['energy'],
-                features['key'],
-                features['loudness']
-            ))
-            conn.commit()
-
     except Exception as e:
         print(f"Error storing data for {track['name']} by {artist_info['name']}: {e}")
 
@@ -117,20 +76,19 @@ def run_spotify_collection():
     cur = conn.cursor()
 
     cur.execute("SELECT COUNT(*) FROM Tracks")
-    total_tracks_before = cur.fetchone()[0]
-    print(f"Tracks in database before adding new ones: {total_tracks_before}")
+    total_before = cur.fetchone()[0]
+    print(f"Tracks in database before adding new ones: {total_before}")
     to_add = LIMIT_PER_RUN
 
     for artist in ARTISTS:
         if to_add <= 0:
             break
-        # Always use offset 0 for mainstream tracks
-        offset = 0  
+        offset = 0  # Using the first page for mainstream results
         tracks = search_tracks_by_artist(artist, limit=15, offset=offset)
         for track in tracks:
             cur.execute("SELECT 1 FROM Tracks WHERE track_id = ?", (track['id'],))
             if cur.fetchone() is None:
-                store_track_and_features(track, conn, cur)
+                store_track(track, conn, cur)
                 to_add -= 1
                 if to_add <= 0:
                     break
@@ -146,4 +104,3 @@ def run_spotify_collection():
 
 if __name__ == '__main__':
     run_spotify_collection()
-

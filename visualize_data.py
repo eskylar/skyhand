@@ -6,8 +6,7 @@ DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
 
 def bar_chart_popularity():
     """
-    Bar chart comparing average track popularity between annotated and unannotated songs.
-    Joins Lyrics and Tracks on normalized artist names (using a simple REPLACE hack for 'é').
+    Create a bar chart comparing average Spotify popularity between annotated and unannotated songs.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -43,8 +42,7 @@ def bar_chart_popularity():
 
 def scatter_duration_vs_annotations():
     """
-    Scatter plot showing track duration (in minutes) versus annotation count.
-    Joins Lyrics and Tracks on normalized artist names.
+    Create a scatter plot showing track duration (in minutes) versus annotation count.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -63,7 +61,7 @@ def scatter_duration_vs_annotations():
         print("No data for duration scatter plot.")
         return
 
-    durations = [row[0] / 60000 for row in data]  # Convert ms to minutes
+    durations = [row[0] / 60000 for row in data]  # Convert milliseconds to minutes
     annotations = [row[1] for row in data]
 
     plt.figure()
@@ -75,10 +73,9 @@ def scatter_duration_vs_annotations():
     plt.savefig('scatter_duration_vs_annotations.png')
     print("Saved scatter_duration_vs_annotations.png")
 
-def pie_chart_annotated_genres():
+def pie_chart_genres():
     """
-    Pie chart showing the distribution of genres among annotated songs.
-    Joins Lyrics and Tracks on normalized artist names.
+    Create a pie chart showing the distribution of genres among annotated songs.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -121,10 +118,9 @@ def pie_chart_annotated_genres():
     print("Saved pie_chart_genres.png")
 
 def run_all_viz():
-    """Run all visualization functions."""
     bar_chart_popularity()
     scatter_duration_vs_annotations()
-    pie_chart_annotated_genres()
+    pie_chart_genres()
 
 if __name__ == '__main__':
     run_all_viz()

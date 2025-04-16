@@ -5,7 +5,7 @@ import random
 import unicodedata
 from db_setup import setup_database
 
-# Genius API Setup
+# Genius API Setup with your access token
 ACCESS_TOKEN = '0Oc4fI4JUTbqzL-wDhf7i4OWKBWB82pa7QQAXqmu2q7jSxImIo3DS5Giyc-u7pkN'
 HEADERS = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
 BASE_URL = 'https://api.genius.com'
@@ -20,16 +20,14 @@ DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
 LIMIT_PER_RUN = 25
 
 def setup_database_genius():
-    """Ensure that the database and tables are set up before collecting Genius data."""
     setup_database()
 
 def normalize_text(text):
-    """Normalize text by removing accents, lowercasing, and trimming spaces."""
+    """Normalize text by removing accents and converting to lowercase."""
     nkfd_form = unicodedata.normalize('NFKD', text)
     return "".join([c for c in nkfd_form if not unicodedata.combining(c)]).lower().strip()
 
 def search_genius_songs(artist, per_page=5, page=1):
-    """Search Genius API for songs by a given artist with pagination."""
     url = f'{BASE_URL}/search'
     params = {'q': artist, 'per_page': per_page, 'page': page}
     response = requests.get(url, headers=HEADERS, params=params)
@@ -39,14 +37,11 @@ def search_genius_songs(artist, per_page=5, page=1):
     return response.json()['response']['hits'][:per_page]
 
 def extract_song_data(hit, searched_artist):
-    """
-    Extract song data from a Genius API hit.
-    Only return song data if the normalized primary artist matches the searched artist.
-    """
     song = hit['result']
     primary_artist = song['primary_artist']['name']
+    # Only insert if the normalized primary artist exactly matches the searched artist.
     if normalize_text(primary_artist) != normalize_text(searched_artist):
-        return None  # Skip if not an exact match
+        return None
     song_data = {
         'song_id': song['id'],
         'title': song['title'],
@@ -55,12 +50,11 @@ def extract_song_data(hit, searched_artist):
         'release_date': song.get('release_date', 'Unknown'),
         'annotation_count': song.get('annotation_count', 0),
         'has_annotations': 1 if song.get('annotation_count', 0) > 0 else 0,
-        'lyrics': ''  # Placeholder
+        'lyrics': ''
     }
     return song_data
 
 def store_lyrics_metadata(song_data):
-    """Insert the extracted song metadata into the Lyrics table."""
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     cur.execute('''
@@ -81,11 +75,6 @@ def store_lyrics_metadata(song_data):
     conn.close()
 
 def run_genius_collection():
-    """
-    Run the Genius data collection process. This version cycles through a randomized 
-    list of artists using a simple index, ensuring that 25 new songs come from various artists.
-    It only inserts songs where the primary artist matches the searched artist.
-    """
     setup_database_genius()
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -100,10 +89,8 @@ def run_genius_collection():
 
     to_add = LIMIT_PER_RUN
     new_songs = 0
-
-    # Initialize per-artist page counters
     pages = {artist: 1 for artist in ARTISTS}
-    artists_shuffled = ARTISTS[:]  # copy list
+    artists_shuffled = ARTISTS[:]
     random.shuffle(artists_shuffled)
     index = 0
     num_artists = len(artists_shuffled)
@@ -133,7 +120,6 @@ def run_genius_collection():
                         return
                 time.sleep(0.5)
             pages[current_artist] += 1
-
         index = (index + 1) % num_artists
 
     conn.close()
@@ -141,7 +127,3 @@ def run_genius_collection():
 
 if __name__ == '__main__':
     run_genius_collection()
-
-
-
-

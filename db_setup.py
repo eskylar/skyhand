@@ -6,7 +6,7 @@ def setup_database():
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    # Updated Lyrics table (Genius API) with a lyrics column and song_id as INTEGER PRIMARY KEY
+    # Lyrics table (Genius API)
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Lyrics (
             song_id INTEGER PRIMARY KEY,
@@ -20,17 +20,7 @@ def setup_database():
         )
     ''')
 
-    # New Annotations table for additional Genius data, sharing the integer song_id as a foreign key
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS Annotations (
-            annotation_id INTEGER PRIMARY KEY,
-            song_id INTEGER,
-            annotation_text TEXT,
-            FOREIGN KEY(song_id) REFERENCES Lyrics(song_id)
-        )
-    ''')
-    
-    # Updated Tracks table (Spotify API) with "genres" and "duration_ms" columns
+    # Tracks table (Spotify API) – note: duration_ms is stored as an INTEGER
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Tracks (
             track_id TEXT PRIMARY KEY,
@@ -41,18 +31,6 @@ def setup_database():
             release_date TEXT,
             genres TEXT,
             duration_ms INTEGER
-        )
-    ''')
-
-    # AudioFeatures table remains unchanged (tracks are linked via track_id as TEXT)
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS AudioFeatures (
-            track_id TEXT PRIMARY KEY,
-            tempo REAL,
-            energy REAL,
-            key INTEGER,
-            loudness REAL,
-            FOREIGN KEY(track_id) REFERENCES Tracks(track_id)
         )
     ''')
     conn.commit()
