@@ -2,19 +2,15 @@ import sqlite3
 import matplotlib.pyplot as plt
 from collections import Counter
 
-# Updated database path
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
 
 def bar_chart_popularity():
     """
-    Create a bar chart comparing average track popularity between annotated
-    and unannotated songs using data from the Tracks table.
-    Uses a join that replaces 'é' with 'e' for improved matching.
+    Bar chart comparing average track popularity between annotated and unannotated songs.
+    Joins Lyrics and Tracks on normalized artist names (using a simple REPLACE hack for 'é').
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
-
-    # Use REPLACE to fix accented characters in the join condition
     query = '''
         SELECT L.has_annotations, AVG(T.popularity)
         FROM Lyrics L
@@ -47,13 +43,11 @@ def bar_chart_popularity():
 
 def scatter_duration_vs_annotations():
     """
-    Create a scatter plot showing the relationship between track duration and
-    annotation count. Duration is converted from milliseconds to minutes.
-    Uses a join that replaces 'é' with 'e' for improved matching.
+    Scatter plot showing track duration (in minutes) versus annotation count.
+    Joins Lyrics and Tracks on normalized artist names.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
-
     query = '''
          SELECT T.duration_ms, L.annotation_count
          FROM Lyrics L
@@ -69,8 +63,7 @@ def scatter_duration_vs_annotations():
         print("No data for duration scatter plot.")
         return
 
-    # Convert duration from ms to minutes
-    durations = [row[0] / 60000 for row in data]
+    durations = [row[0] / 60000 for row in data]  # Convert ms to minutes
     annotations = [row[1] for row in data]
 
     plt.figure()
@@ -84,12 +77,11 @@ def scatter_duration_vs_annotations():
 
 def pie_chart_annotated_genres():
     """
-    Create a pie chart showing the distribution of genres among annotated songs.
-    Uses a join that replaces 'é' with 'e' for improved matching.
+    Pie chart showing the distribution of genres among annotated songs.
+    Joins Lyrics and Tracks on normalized artist names.
     """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
-
     query = '''
          SELECT T.genres
          FROM Lyrics L
@@ -122,19 +114,14 @@ def pie_chart_annotated_genres():
 
     plt.figure()
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-    plt.title('Distribution of Genres for Annotated Songs (by artist)')
+    plt.title('Distribution of Genres for Annotated Songs')
     plt.axis('equal')
     plt.tight_layout()
     plt.savefig('pie_chart_genres.png')
     print("Saved pie_chart_genres.png")
 
 def run_all_viz():
-    """
-    Run all visualization functions sequentially to produce:
-      - A bar chart for average popularity,
-      - A scatter plot for track duration vs. annotation count, and
-      - A pie chart for annotated song genres.
-    """
+    """Run all visualization functions."""
     bar_chart_popularity()
     scatter_duration_vs_annotations()
     pie_chart_annotated_genres()

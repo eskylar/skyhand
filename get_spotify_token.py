@@ -4,6 +4,7 @@ import requests
 #  Replace these with your actual credentials
 CLIENT_ID = '143397e589b24bb8947ab32600b76d90'
 CLIENT_SECRET = '5b1729db0fdf49b5bb923c41853db9af'
+''
 
 def get_spotify_token():
     # Step 1: Encode client ID and secret
