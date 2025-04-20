@@ -4,8 +4,10 @@ import time
 import random
 from db_setup import setup_database
 
+#insert or ignore into so no double songs
+
 # Spotify API Setup with your current access token
-ACCESS_TOKEN = 'BQAsbhO36oDbrNYXfEDc1Ey5Zzv34raJx-Hh-Ewq_TTLuHpga4NprOcjtWNSmyHZVP2q4thIqynH_1S3ptdsHlwbJAuiwsdytqH5pxiWUzeNJNqA2qVKHTh48MFUCrXIvz5D0hkuxLQ'
+ACCESS_TOKEN = 'BQBHwRgRP_d8T0duE6M3MmhYqfzQrVtmZoe5yp198sB5-pi5_2AAjlp25grYXMMFdI8gzU3bMwTtm_LKbDnD2eGKW6hFAppMl3FcAu8d2euGD8ZUQE-FpjX8v3n5NU3OMc3ptig_mm8'
 HEADERS = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
 BASE_URL = 'https://api.spotify.com/v1'
 
@@ -16,7 +18,7 @@ ARTISTS = [
 ]
 
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
-LIMIT_PER_RUN = 25  # New tracks to add per run
+LIMIT_PER_RUN = 25 
 
 def setup_database_spotify():
     setup_database()
