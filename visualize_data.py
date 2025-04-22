@@ -134,6 +134,37 @@ def pie_chart_annotated_genres():
     plt.savefig('pie_chart_genres.png')
     print("Saved pie_chart_genres.png")
 
+def line_chart_popularity_by_year():
+    """
+    Create a line chart showing average track popularity over time.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+
+    query = '''
+        SELECT SUBSTR(release_date, 1, 4) as year, AVG(popularity)
+        FROM Tracks
+        WHERE release_date IS NOT NULL AND LENGTH(release_date) >= 4
+        GROUP BY year
+        ORDER BY year
+    '''
+    cur.execute(query)
+    data = cur.fetchall()
+    conn.close()
+
+    years = [int(row[0]) for row in data if row[0].isdigit()]
+    avg_popularity = [row[1] for row in data if row[0].isdigit()]
+
+    plt.figure()
+    plt.plot(years, avg_popularity, marker='o')
+    plt.title('Average Track Popularity by Release Year')
+    plt.xlabel('Year')
+    plt.ylabel('Avg Popularity')
+    plt.tight_layout()
+    plt.savefig('line_chart_popularity_by_year.png')
+    print("Saved line_chart_popularity_by_year.png")
+
+
 def run_all_viz():
     """
     Run all visualization functions sequentially to produce the bar, scatter, and pie charts.
@@ -141,6 +172,7 @@ def run_all_viz():
     bar_chart_avg_audio()
     scatter_popularity_vs_annotations()
     pie_chart_annotated_genres()
+    line_chart_popularity_by_year()
 
 if __name__ == '__main__':
     run_all_viz()
