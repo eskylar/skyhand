@@ -32,8 +32,10 @@ def bar_chart_avg_audio():
     features = ['Tempo', 'Energy', 'Loudness']
 
     x = range(len(features))
-    values_unannotated = data[0][1:] if data[0][0] == 0 else data[1][1:]
-    values_annotated = data[1][1:] if data[0][0] == 0 else data[0][1:]
+    has_annotations_map = {row[0]: row[1:] for row in data}
+    values_unannotated = has_annotations_map.get(0, [0, 0, 0])
+    values_annotated = has_annotations_map.get(1, [0, 0, 0])
+
 
     plt.figure()
     plt.bar(x, values_unannotated, width=0.4, label='Unannotated', align='center')
