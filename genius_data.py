@@ -39,7 +39,6 @@ def search_genius_songs(artist, per_page=5, page=1):
 def extract_song_data(hit, searched_artist):
     song = hit['result']
     primary_artist = song['primary_artist']['name']
-    # Only insert if the normalized primary artist exactly matches the searched artist.
     if normalize_text(primary_artist) != normalize_text(searched_artist):
         return None
     song_data = {
@@ -60,18 +59,15 @@ def store_lyrics_metadata(song_data):
 
     artist_name = song_data['artist']
 
-    # Step 1: Check if artist already exists
     cur.execute("SELECT id FROM Artists WHERE name = ?", (artist_name,))
     result = cur.fetchone()
 
-    # Step 2: Insert if not exists
     if result:
         artist_id = result[0]
     else:
         cur.execute("INSERT INTO Artists (name) VALUES (?)", (artist_name,))
         artist_id = cur.lastrowid
 
-    # Step 3: Insert lyrics metadata with artist_id
     cur.execute('''
         INSERT OR IGNORE INTO Lyrics (
             song_id, title, artist_id, album, release_date, annotation_count, has_annotations, lyrics

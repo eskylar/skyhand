@@ -1,13 +1,11 @@
 import sqlite3
 
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
-#here is a change
 
 def setup_database():
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    # NEW: Artists table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Artists (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,7 +13,20 @@ def setup_database():
         )
     ''')
 
-    # Lyrics table
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS Tracks (
+            track_id TEXT PRIMARY KEY,
+            name TEXT,
+            artist_id INTEGER,
+            album TEXT,
+            popularity INTEGER,
+            release_date TEXT,
+            genres TEXT,
+            duration_ms INTEGER,
+            FOREIGN KEY (artist_id) REFERENCES Artists(id)
+        )
+    ''')
+
     cur.execute('''
         CREATE TABLE IF NOT EXISTS Lyrics (
             song_id INTEGER PRIMARY KEY,
@@ -30,18 +41,12 @@ def setup_database():
         )
     ''')
 
-    # Tracks table
     cur.execute('''
-        CREATE TABLE IF NOT EXISTS Tracks (
+        CREATE TABLE IF NOT EXISTS AudioFeatures (
             track_id TEXT PRIMARY KEY,
-            name TEXT,
-            artist_id INTEGER,
-            album TEXT,
-            popularity INTEGER,
-            release_date TEXT,
-            genres TEXT,
-            duration_ms INTEGER,
-            FOREIGN KEY (artist_id) REFERENCES Artists(id)
+            tempo REAL,
+            energy REAL,
+            loudness REAL
         )
     ''')
 

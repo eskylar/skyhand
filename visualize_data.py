@@ -4,81 +4,92 @@ from collections import Counter
 
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
 
-def bar_chart_popularity():
+def bar_chart_avg_audio():
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     query = '''
         SELECT L.has_annotations,
-               AVG(T.popularity)
+               AVG(A.tempo),
+               AVG(A.energy),
+               AVG(A.loudness)
         FROM Lyrics L
-        JOIN Tracks T 
-          ON L.artist_id = T.artist_id
+        JOIN Tracks T ON INSTR(LOWER(T.name), LOWER(L.title)) > 0
+        JOIN AudioFeatures A ON T.track_id = A.track_id
+        JOIN Artists AR ON T.artist_id = AR.id
+        WHERE L.artist_id = AR.id
         GROUP BY L.has_annotations
     '''
     cur.execute(query)
     data = cur.fetchall()
+    print("Data for bar chart:", data)
     conn.close()
 
-    pop_dict = {0: 0, 1: 0}
-    for row in data:
-        has_ann, avg_pop = row
-        pop_dict[has_ann] = avg_pop
+    if not data:
+        print("No data found for bar chart.")
+        return
 
     labels = ['Unannotated', 'Annotated']
-    pops = [pop_dict.get(0, 0), pop_dict.get(1, 0)]
-    x = range(len(labels))
+    features = ['Tempo', 'Energy', 'Loudness']
+
+    x = range(len(features))
+    values_unannotated = data[0][1:] if data[0][0] == 0 else data[1][1:]
+    values_annotated = data[1][1:] if data[0][0] == 0 else data[0][1:]
 
     plt.figure()
-    plt.bar(x, pops, width=0.4, color='skyblue')
-    plt.xticks(x, labels)
-    plt.xlabel('Annotation Status')
-    plt.ylabel('Average Popularity')
-    plt.title('Average Popularity: Annotated vs. Unannotated Songs')
+    plt.bar(x, values_unannotated, width=0.4, label='Unannotated', align='center')
+    plt.bar([i + 0.4 for i in x], values_annotated, width=0.4, label='Annotated', align='center')
+    plt.xticks([i + 0.2 for i in x], features)
+    plt.ylabel('Average Value')
+    plt.title('Average Tempo, Energy, Loudness (Annotated vs Unannotated)')
+    plt.legend()
     plt.tight_layout()
-    plt.savefig('bar_chart_popularity.png')
-    print("Saved bar_chart_popularity.png")
+    plt.savefig('bar_chart_audio_features.png')
+    print("Saved bar_chart_audio_features.png")
 
-def scatter_duration_vs_annotations():
+def scatter_popularity_vs_annotations():
+    """
+    Create a scatter plot showing the relationship between Spotify popularity
+    and Genius annotation count using join on artist.
+    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
+
     query = '''
-        SELECT T.duration_ms,
-               L.annotation_count
+        SELECT T.popularity, L.annotation_count
         FROM Lyrics L
-        JOIN Tracks T 
-          ON L.artist_id = T.artist_id
+        JOIN Tracks T ON L.artist_id = T.artist_id
         WHERE L.annotation_count > 0
     '''
     cur.execute(query)
     data = cur.fetchall()
+    print("Data for scatter plot:", data)
     conn.close()
 
-    if not data:
-        print("No data for duration scatter plot.")
-        return
-
-    durations = [row[0] / 60000 for row in data]  # Convert milliseconds to minutes
+    popularity = [row[0] for row in data]
     annotations = [row[1] for row in data]
 
     plt.figure()
-    plt.scatter(durations, annotations, alpha=0.7)
-    plt.xlabel('Track Duration (minutes)')
+    plt.scatter(popularity, annotations, alpha=0.7)
+    plt.title('Spotify Popularity vs. Genius Annotation Count (by artist)')
+    plt.xlabel('Popularity (0–100)')
     plt.ylabel('Annotation Count')
-    plt.title('Track Duration vs. Annotation Count')
     plt.tight_layout()
-    plt.savefig('scatter_duration_vs_annotations.png')
-    print("Saved scatter_duration_vs_annotations.png")
+    plt.savefig('scatter_popularity_annotations.png')
+    print("Saved scatter_popularity_annotations.png")
 
-def pie_chart_genres():
+def pie_chart_annotated_genres():
+    """
+    Create a pie chart showing the distribution of genres among annotated songs
+    using join on artist.
+    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
+
     query = '''
         SELECT T.genres
         FROM Lyrics L
-        JOIN Tracks T 
-          ON L.artist_id = T.artist_id
-        WHERE L.has_annotations = 1
-          AND T.genres IS NOT NULL
+        JOIN Tracks T ON L.artist_id = T.artist_id
+        WHERE L.has_annotations = 1 AND T.genres IS NOT NULL
     '''
     cur.execute(query)
     rows = cur.fetchall()
@@ -106,16 +117,78 @@ def pie_chart_genres():
 
     plt.figure()
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-    plt.title('Distribution of Genres for Annotated Songs')
+    plt.title('Distribution of Genres for Annotated Songs (by artist)')
     plt.axis('equal')
     plt.tight_layout()
     plt.savefig('pie_chart_genres.png')
     print("Saved pie_chart_genres.png")
 
+def line_chart_popularity_by_year():
+    """
+    Create a line chart showing average track popularity over time.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+
+    query = '''
+        SELECT SUBSTR(release_date, 1, 4) as year, AVG(popularity)
+        FROM Tracks
+        WHERE release_date IS NOT NULL AND LENGTH(release_date) >= 4
+        GROUP BY year
+        ORDER BY year
+    '''
+    cur.execute(query)
+    data = cur.fetchall()
+    conn.close()
+
+    years = [int(row[0]) for row in data if row[0].isdigit()]
+    avg_popularity = [row[1] for row in data if row[0].isdigit()]
+
+    plt.figure()
+    plt.plot(years, avg_popularity, marker='o')
+    plt.title('Average Track Popularity by Release Year')
+    plt.xlabel('Year')
+    plt.ylabel('Avg Popularity')
+    plt.tight_layout()
+    plt.savefig('line_chart_popularity_by_year.png')
+    print("Saved line_chart_popularity_by_year.png")
+
+def histogram_track_loudness():
+    """
+    Create a histogram showing the distribution of track loudness.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+
+    query = '''
+        SELECT loudness
+        FROM AudioFeatures
+        WHERE loudness IS NOT NULL
+    '''
+    cur.execute(query)
+    data = cur.fetchall()
+    conn.close()
+
+    loudness_values = [row[0] for row in data]
+
+    plt.figure()
+    plt.hist(loudness_values, bins=15, edgecolor='black')
+    plt.title('Distribution of Track Loudness')
+    plt.xlabel('Loudness (dB)')
+    plt.ylabel('Number of Tracks')
+    plt.tight_layout()
+    plt.savefig('histogram_loudness.png')
+    print("Saved histogram_loudness.png")
+
 def run_all_viz():
-    bar_chart_popularity()
-    scatter_duration_vs_annotations()
-    pie_chart_genres()
+    """
+    Run all visualization functions sequentially to produce the bar, scatter, and pie charts.
+    """
+    bar_chart_avg_audio()
+    scatter_popularity_vs_annotations()
+    pie_chart_annotated_genres()
+    line_chart_popularity_by_year()
+    histogram_track_loudness()
 
 if __name__ == '__main__':
     run_all_viz()

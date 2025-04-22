@@ -1,17 +1,15 @@
 import base64
 import requests
 
-#  Replace these with your actual credentials
-CLIENT_ID = '143397e589b24bb8947ab32600b76d90'
-CLIENT_SECRET = '5b1729db0fdf49b5bb923c41853db9af'
+#numbers stay the same jsut re run
+CLIENT_ID = 'f8210b69869d406fb729f3547adf4a81'
+CLIENT_SECRET = '15a4adb5758b471a8841cfc04dd8cfd0'
 ''
 
 def get_spotify_token():
-    # Step 1: Encode client ID and secret
     auth_str = f'{CLIENT_ID}:{CLIENT_SECRET}'
     b64_auth_str = base64.b64encode(auth_str.encode()).decode()
 
-    # Step 2: Prepare POST request
     token_url = 'https://accounts.spotify.com/api/token'
     headers = {
         'Authorization': f'Basic {b64_auth_str}'
@@ -20,7 +18,6 @@ def get_spotify_token():
         'grant_type': 'client_credentials'
     }
 
-    # Step 3: Send request
     response = requests.post(token_url, headers=headers, data=data)
 
     if response.status_code != 200:
@@ -30,7 +27,6 @@ def get_spotify_token():
     token_info = response.json()
     return token_info['access_token']
 
-# Test it
 if __name__ == '__main__':
     token = get_spotify_token()
     if token:

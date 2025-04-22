@@ -4,9 +4,11 @@ import time
 import random
 from db_setup import setup_database
 
-# Spotify API Setup with your current access token
-ACCESS_TOKEN = 'BQA6BoRKg5E2rX-GsN7s31JRr402PUKAMhOcTyqjD35fiKvU1uhx8Hu5vCXkScMCZajbY0lKksL0tPbKf_g653HYnG87mU095R3U52KhUdAUEGj0s1aMdNGKczz7SMbHO15VI7nT4_0'
+from get_spotify_token import get_spotify_token
+
+ACCESS_TOKEN = get_spotify_token()
 HEADERS = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
+
 BASE_URL = 'https://api.spotify.com/v1'
 
 ARTISTS = [
@@ -16,7 +18,7 @@ ARTISTS = [
 ]
 
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
-LIMIT_PER_RUN = 25  # New tracks to add per run
+LIMIT_PER_RUN = 25  # New tracks per run
 
 def setup_database_spotify():
     setup_database()
@@ -48,18 +50,15 @@ def store_track(track, conn, cur):
     try:
         artist_name = track['artists'][0]['name']
 
-        # Step 1: Check if artist already exists
         cur.execute("SELECT id FROM Artists WHERE name = ?", (artist_name,))
         result = cur.fetchone()
 
-        # Step 2: Insert if not exists
         if result:
             artist_id = result[0]
         else:
             cur.execute("INSERT INTO Artists (name) VALUES (?)", (artist_name,))
             artist_id = cur.lastrowid
 
-        # Step 3: Get genres
         spotify_artist_id = track['artists'][0]['id']
         genres_list = get_artist_genres(spotify_artist_id)
         genres_str = ", ".join(genres_list) if genres_list else "Unknown"
