@@ -5,7 +5,7 @@ from collections import Counter
 #sqlite3 /Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite
 
 # Updated database path
-DB_NAME = '/Users/hannahto/Desktop/SI206/skyhand/music_data.sqlite'
+DB_NAME = '/Users/hannahtoppel/Desktop/si 206/skyhand/music_data.sqlite'
 
 def bar_chart_avg_audio():
     """
