@@ -5,7 +5,7 @@ from collections import Counter
 #sqlite3 /Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite
 
 # Updated database path
-DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
+DB_NAME = '/Users/hannahto/Desktop/SI206/skyhand/music_data.sqlite'
 
 def bar_chart_avg_audio():
     """
@@ -138,7 +138,7 @@ def line_chart_popularity_by_year():
     """
     Create a line chart showing average track popularity over time.
     """
-    conn = sqlite3.connect(music_data.sqlite)
+    conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
     query = '''
@@ -168,7 +168,7 @@ def histogram_track_loudness():
     """
     Create a histogram showing the distribution of track loudness.
     """
-    conn = sqlite3.connect(music_data.sqlite)
+    conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
     query = '''
