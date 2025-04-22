@@ -1,7 +1,28 @@
 "--- Average Audio Features (0 = unannotated, 1 = annotated) ---"
 Annotated?,Avg Tempo,Avg Energy,Avg Loudness
+0,77.25,0.694,-3.8
+1,131.74347826086955,0.6233478260869565,-7.360434782608695
 
 --- Popularity vs. Annotation Count ---
 Popularity,Annotation Count
 77,8
+70,13
+76,13
 73,33
+88,12
+81,10
+87,9
+80,22
+88,11
+91,19
+82,9
+67,8
+79,9
+70,6
+75,14
+54,9
+54,29
+84,29
+66,2
+73,13
+78,8
