@@ -5,20 +5,18 @@ from collections import Counter
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
 
 def bar_chart_popularity():
-    """
-    Create a bar chart comparing average Spotify popularity between annotated and unannotated songs.
-    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     query = '''
-        SELECT L.has_annotations, AVG(T.popularity)
+        SELECT L.has_annotations,
+               AVG(T.popularity)
         FROM Lyrics L
-        JOIN Tracks T ON REPLACE(LOWER(L.artist), 'é', 'e') = REPLACE(LOWER(T.artist), 'é', 'e')
+        JOIN Tracks T 
+          ON L.artist_id = T.artist_id
         GROUP BY L.has_annotations
     '''
     cur.execute(query)
     data = cur.fetchall()
-    print("Data for popularity bar chart:", data)
     conn.close()
 
     pop_dict = {0: 0, 1: 0}
@@ -41,20 +39,18 @@ def bar_chart_popularity():
     print("Saved bar_chart_popularity.png")
 
 def scatter_duration_vs_annotations():
-    """
-    Create a scatter plot showing track duration (in minutes) versus annotation count.
-    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     query = '''
-         SELECT T.duration_ms, L.annotation_count
-         FROM Lyrics L
-         JOIN Tracks T ON REPLACE(LOWER(L.artist), 'é', 'e') = REPLACE(LOWER(T.artist), 'é', 'e')
-         WHERE L.annotation_count > 0
+        SELECT T.duration_ms,
+               L.annotation_count
+        FROM Lyrics L
+        JOIN Tracks T 
+          ON L.artist_id = T.artist_id
+        WHERE L.annotation_count > 0
     '''
     cur.execute(query)
     data = cur.fetchall()
-    print("Data for duration scatter plot:", data)
     conn.close()
 
     if not data:
@@ -74,16 +70,15 @@ def scatter_duration_vs_annotations():
     print("Saved scatter_duration_vs_annotations.png")
 
 def pie_chart_genres():
-    """
-    Create a pie chart showing the distribution of genres among annotated songs.
-    """
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     query = '''
-         SELECT T.genres
-         FROM Lyrics L
-         JOIN Tracks T ON REPLACE(LOWER(L.artist), 'é', 'e') = REPLACE(LOWER(T.artist), 'é', 'e')
-         WHERE L.has_annotations = 1 AND T.genres IS NOT NULL
+        SELECT T.genres
+        FROM Lyrics L
+        JOIN Tracks T 
+          ON L.artist_id = T.artist_id
+        WHERE L.has_annotations = 1
+          AND T.genres IS NOT NULL
     '''
     cur.execute(query)
     rows = cur.fetchall()

@@ -15,21 +15,18 @@ def connect_db():
     return conn, cur
 
 def avg_audio_features_by_annotation():
-    """
-    Calculate the average tempo, energy, and loudness for annotated versus unannotated songs.
-    
-    Returns:
-        list: Query results as a list of tuples.
-    """
     conn, cur = connect_db()
     query = '''
-        SELECT L.has_annotations, 
-               AVG(A.tempo), 
-               AVG(A.energy), 
+        SELECT L.has_annotations,
+               AVG(A.tempo),
+               AVG(A.energy),
                AVG(A.loudness)
         FROM Lyrics L
-        JOIN Tracks T ON LOWER(L.title) = LOWER(T.name) AND LOWER(L.artist) = LOWER(T.artist)
-        JOIN AudioFeatures A ON T.track_id = A.track_id
+        JOIN Tracks T 
+          ON L.artist_id = T.artist_id
+         AND LOWER(L.title) = LOWER(T.name)
+        JOIN AudioFeatures A 
+          ON T.track_id = A.track_id
         GROUP BY L.has_annotations
     '''
     cur.execute(query)
@@ -37,24 +34,23 @@ def avg_audio_features_by_annotation():
     conn.close()
     return results
 
+
 def get_popularity_and_annotations():
-    """
-    Retrieve Spotify popularity and Genius annotation count for songs with annotations.
-    
-    Returns:
-        list: Query results as a list of tuples.
-    """
     conn, cur = connect_db()
     query = '''
-        SELECT T.popularity, L.annotation_count
+        SELECT T.popularity,
+               L.annotation_count
         FROM Lyrics L
-        JOIN Tracks T ON LOWER(L.title) = LOWER(T.name) AND LOWER(L.artist) = LOWER(T.artist)
+        JOIN Tracks T 
+          ON L.artist_id = T.artist_id
+         AND LOWER(L.title) = LOWER(T.name)
         WHERE L.annotation_count > 0
     '''
     cur.execute(query)
     results = cur.fetchall()
     conn.close()
     return results
+
 
 def write_summary_to_file(avg_features, pop_annots):
     """

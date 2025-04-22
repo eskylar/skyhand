@@ -57,22 +57,42 @@ def extract_song_data(hit, searched_artist):
 def store_lyrics_metadata(song_data):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
+
+    artist_name = song_data['artist']
+
+    # Step 1: Check if artist already exists
+    cur.execute("SELECT id FROM Artists WHERE name = ?", (artist_name,))
+    result = cur.fetchone()
+
+    # Step 2: Insert if not exists
+    if result:
+        artist_id = result[0]
+    else:
+        cur.execute("INSERT INTO Artists (name) VALUES (?)", (artist_name,))
+        artist_id = cur.lastrowid
+
+    # Step 3: Insert lyrics metadata with artist_id
     cur.execute('''
-        INSERT OR IGNORE INTO Lyrics (song_id, title, artist, album, release_date, annotation_count, has_annotations, lyrics)
+        INSERT OR IGNORE INTO Lyrics (
+            song_id, title, artist_id, album, release_date, annotation_count, has_annotations, lyrics
+        )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         song_data['song_id'],
         song_data['title'],
-        song_data['artist'],
+        artist_id,
         song_data['album'],
         song_data['release_date'],
         song_data['annotation_count'],
         song_data['has_annotations'],
         song_data['lyrics']
     ))
-    print(f"Inserted lyrics for {song_data['title']} by {song_data['artist']}")
+
+    print(f"Inserted lyrics for {song_data['title']} by {artist_name}")
     conn.commit()
     conn.close()
+
+
 
 def run_genius_collection():
     setup_database_genius()

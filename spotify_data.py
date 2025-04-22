@@ -4,10 +4,8 @@ import time
 import random
 from db_setup import setup_database
 
-#insert or ignore into so no double songs
-
 # Spotify API Setup with your current access token
-ACCESS_TOKEN = 'BQBHwRgRP_d8T0duE6M3MmhYqfzQrVtmZoe5yp198sB5-pi5_2AAjlp25grYXMMFdI8gzU3bMwTtm_LKbDnD2eGKW6hFAppMl3FcAu8d2euGD8ZUQE-FpjX8v3n5NU3OMc3ptig_mm8'
+ACCESS_TOKEN = 'BQA6BoRKg5E2rX-GsN7s31JRr402PUKAMhOcTyqjD35fiKvU1uhx8Hu5vCXkScMCZajbY0lKksL0tPbKf_g653HYnG87mU095R3U52KhUdAUEGj0s1aMdNGKczz7SMbHO15VI7nT4_0'
 HEADERS = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
 BASE_URL = 'https://api.spotify.com/v1'
 
@@ -18,7 +16,7 @@ ARTISTS = [
 ]
 
 DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
-LIMIT_PER_RUN = 25 
+LIMIT_PER_RUN = 25  # New tracks to add per run
 
 def setup_database_spotify():
     setup_database()
@@ -48,29 +46,48 @@ def get_artist_genres(artist_id):
 
 def store_track(track, conn, cur):
     try:
-        artist_info = track['artists'][0]
-        artist_id = artist_info['id']
-        genres_list = get_artist_genres(artist_id)
+        artist_name = track['artists'][0]['name']
+
+        # Step 1: Check if artist already exists
+        cur.execute("SELECT id FROM Artists WHERE name = ?", (artist_name,))
+        result = cur.fetchone()
+
+        # Step 2: Insert if not exists
+        if result:
+            artist_id = result[0]
+        else:
+            cur.execute("INSERT INTO Artists (name) VALUES (?)", (artist_name,))
+            artist_id = cur.lastrowid
+
+        # Step 3: Get genres
+        spotify_artist_id = track['artists'][0]['id']
+        genres_list = get_artist_genres(spotify_artist_id)
         genres_str = ", ".join(genres_list) if genres_list else "Unknown"
-        print(f"Added: {track['name']} by {artist_info['name']}")
+
+        print(f"Added: {track['name']} by {artist_name}")
+
+        # Step 4: Insert track using artist_id
         cur.execute('''
             INSERT OR REPLACE INTO Tracks (
-                track_id, name, artist, album, popularity, release_date, genres, duration_ms
+                track_id, name, artist_id, album, popularity, release_date, genres, duration_ms
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             track['id'],
             track['name'],
-            artist_info['name'],
+            artist_id,
             track['album']['name'],
             track['popularity'],
             track['album']['release_date'],
             genres_str,
             track['duration_ms']
         ))
+
         conn.commit()
+
     except Exception as e:
-        print(f"Error storing data for {track['name']} by {artist_info['name']}: {e}")
+        print(f"Error storing data for {track['name']} by {artist_name}: {e}")
+
 
 def run_spotify_collection():
     setup_database_spotify()

@@ -1,3 +1,8 @@
+import sqlite3
+
+DB_NAME = '/Users/skylaremerson/Desktop/SI206/skyhand/music_data.sqlite'
+#here is a change
+
 def setup_database():
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
