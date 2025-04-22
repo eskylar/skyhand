@@ -138,7 +138,7 @@ def line_chart_popularity_by_year():
     """
     Create a line chart showing average track popularity over time.
     """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(music_data.sqlite)
     cur = conn.cursor()
 
     query = '''
@@ -164,6 +164,32 @@ def line_chart_popularity_by_year():
     plt.savefig('line_chart_popularity_by_year.png')
     print("Saved line_chart_popularity_by_year.png")
 
+def histogram_track_loudness():
+    """
+    Create a histogram showing the distribution of track loudness.
+    """
+    conn = sqlite3.connect(music_data.sqlite)
+    cur = conn.cursor()
+
+    query = '''
+        SELECT loudness
+        FROM AudioFeatures
+        WHERE loudness IS NOT NULL
+    '''
+    cur.execute(query)
+    data = cur.fetchall()
+    conn.close()
+
+    loudness_values = [row[0] for row in data]
+
+    plt.figure()
+    plt.hist(loudness_values, bins=15, edgecolor='black')
+    plt.title('Distribution of Track Loudness')
+    plt.xlabel('Loudness (dB)')
+    plt.ylabel('Number of Tracks')
+    plt.tight_layout()
+    plt.savefig('histogram_loudness.png')
+    print("Saved histogram_loudness.png")
 
 def run_all_viz():
     """
@@ -173,6 +199,7 @@ def run_all_viz():
     scatter_popularity_vs_annotations()
     pie_chart_annotated_genres()
     line_chart_popularity_by_year()
+    histogram_track_loudness()
 
 if __name__ == '__main__':
     run_all_viz()
